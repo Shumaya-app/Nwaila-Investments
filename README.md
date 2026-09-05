@@ -86,71 +86,99 @@ browser; the call is where the conversation starts.
 
 ---
 
-## DNS
+## DNS for nwaila.co.za
 
-Do this wherever the domain is held - Domains.co.za, Xneelo, Afrihost, GoDaddy, Cloudflare.
-Look for *DNS*, *Zone editor* or *Advanced DNS*.
+Zone is at your existing host. GitHub account is **shumaya-app**.
 
-### Point the bare domain at GitHub
+### 1. Before you switch: protect the mail subdomains
 
-Delete existing **A** records on `@` (shown as blank or `nwaila.co.za`), then add all four:
+Four records are CNAMEd to the apex, so they will follow it to GitHub the moment you change it:
+`mail`, `pop`, `imap`, `smtp`. Incoming mail is safe (MX points at Microsoft 365), but any
+Outlook or phone configured with `smtp.nwaila.co.za` or `imap.nwaila.co.za` will stop working.
 
-| Type | Host | Value | TTL |
+Change all four from CNAME to A records on the old host first:
+
+| Name | TTL | Type | Record |
 |---|---|---|---|
-| A | @ | 185.199.108.153 | 3600 |
-| A | @ | 185.199.109.153 | 3600 |
-| A | @ | 185.199.110.153 | 3600 |
-| A | @ | 185.199.111.153 | 3600 |
+| mail.nwaila.co.za. | 3600 | A | 129.232.194.138 |
+| pop.nwaila.co.za. | 3600 | A | 129.232.194.138 |
+| imap.nwaila.co.za. | 3600 | A | 129.232.194.138 |
+| smtp.nwaila.co.za. | 3600 | A | 129.232.194.138 |
 
-If your registrar supports **ALIAS** or **ANAME**, one of those pointing `@` at
-`YOUR-USERNAME.github.io` is better - but the four A records always work.
+`ftp`, `webmail`, `cpanel`, `whm`, `webdisk`, `cpcalendars` and `cpcontacts` are already A
+records on that IP. Leave them alone.
 
-### Point www at GitHub
+### 2. Delete the old apex record
 
-| Type | Host | Value | TTL |
+`nwaila.co.za.` A `129.232.194.138`
+
+### 3. Add GitHub's four apex records
+
+| Name | TTL | Type | Record |
 |---|---|---|---|
-| CNAME | www | YOUR-USERNAME.github.io. | 3600 |
+| nwaila.co.za. | 3600 | A | 185.199.108.153 |
+| nwaila.co.za. | 3600 | A | 185.199.109.153 |
+| nwaila.co.za. | 3600 | A | 185.199.110.153 |
+| nwaila.co.za. | 3600 | A | 185.199.111.153 |
 
-Replace `YOUR-USERNAME` with the account or organisation that owns the repository.
-Delete any existing A or CNAME on `www` first.
+All four. GitHub uses them for redundancy.
 
-### Leave email alone
+### 4. Repoint www
 
-**Do not touch MX records.** They route info@nwaila.co.za and have nothing to do with the website.
-Same for TXT records holding SPF, DKIM or DMARC. If a registrar offers to reset the zone to
-defaults, say no - it wipes those.
+Currently `www.nwaila.co.za. CNAME nwaila.co.za`. Change the value to:
 
-### Verification records
+| Name | TTL | Type | Record |
+|---|---|---|---|
+| www.nwaila.co.za. | 3600 | CNAME | shumaya-app.github.io. |
 
-GitHub → Settings → Pages → *Add a domain* gives you a TXT record. Adding it stops anyone else
-claiming the domain on Pages later:
+A CNAME to the apex will serve the site, but the HTTPS certificate for www will not issue.
 
-| Type | Host | Value |
-|---|---|---|
-| TXT | _github-pages-challenge-YOUR-USERNAME | (string GitHub shows you) |
+### 5. Verify the domain with GitHub
 
-Google Search Console asks for one more, on `@`:
+GitHub - your profile - **Settings - Pages - Add a domain**. It shows a value to paste:
 
-| Type | Host | Value |
-|---|---|---|
-| TXT | @ | google-site-verification=… |
+| Name | TTL | Type | Record |
+|---|---|---|---|
+| _github-pages-challenge-shumaya-app | 3600 | TXT | (the string GitHub shows you) |
 
-A domain can hold several TXT records. Add, don't replace.
+This stops anyone else claiming nwaila.co.za on GitHub Pages later.
 
-### Then wait
+### 6. Do not touch
 
-DNS takes 15 minutes to a few hours, occasionally 24. Once it resolves, go back to
-**Settings → Pages** and tick **Enforce HTTPS**. If greyed out, the certificate is still being
-issued - check again in an hour.
+The **MX** record (`nwaila-co-za.mail.protection.outlook.com`), the **SPF** TXT, `_dmarc`,
+`default._domainkey`, the two `hs1/hs2._domainkey` HubSpot CNAMEs, and `autodiscover`.
+Those are your email. If the host offers to reset the zone to defaults, say no.
 
-Both addresses work, with `www` redirecting to the bare `nwaila.co.za`. Keep it that way; one
-canonical address is better for search than two.
+### 7. Safe to delete
+
+`discovery.nwaila.co.za CNAME cname.tally.so` - that was the Tally form, now replaced by Calendly.
+Keep `newsletter.nwaila.co.za` and `portal.nwaila.co.za`.
+
+### 8. Tidy the SPF afterwards
+
+Current value:
+
+```
+v=spf1 +mx +a +ip4:129.232.194.138 +include:spf.protection.outlook.com -all
+```
+
+`+a` authorises whatever the apex resolves to, which will be GitHub. Harmless but sloppy.
+Once the site is live, and if 129.232.194.138 no longer sends mail, reduce it to:
+
+```
+v=spf1 +mx +include:spf.protection.outlook.com -all
+```
+
+### 9. Then enforce HTTPS
+
+DNS takes 15 minutes to a few hours. Once it resolves, go to **Settings - Pages** and tick
+**Enforce HTTPS**. Greyed out means the certificate is still issuing; check again in an hour.
 
 ### Checking
 
 ```
 dig nwaila.co.za +short        # the four 185.199.x.153 addresses
-dig www.nwaila.co.za +short    # YOUR-USERNAME.github.io
+dig www.nwaila.co.za +short    # shumaya-app.github.io
 ```
 
 Or paste the domain into dnschecker.org.
@@ -161,8 +189,6 @@ Or paste the domain into dnschecker.org.
 - **"Domain does not resolve to the GitHub Pages server"** - DNS not propagated, or an old A record remains.
 - **Site loads unstyled** - `.nojekyll` is missing.
 - **Certificate warning** - remove the custom domain in Pages settings, save, add it back.
-
----
 
 ## Search and social, once live
 
@@ -178,3 +204,13 @@ Or paste the domain into dnschecker.org.
   no database, no cookies, which keeps POPIA simple. `privacy.html` says so plainly.
 - GA4 does set analytics cookies. If you'd rather stay cookie-free, Plausible or Fathom are
   drop-in replacements for that one script block.
+
+## PDF download
+
+The report's **Download PDF** button writes a real file - no browser print sheet. It loads
+html2canvas and jsPDF from cdnjs on first use, captures the report at a fixed 718px width with the
+print-compact styling, and slices the image at card boundaries so a page never cuts a card in half.
+Output is A4, two pages, about 450 KB, named `nwaila-business-health-check.pdf`.
+
+If those scripts cannot load (offline, or a network that blocks cdnjs) the button falls back to the
+browser print dialog, where the destination is "Save as PDF". Nothing to configure either way.
