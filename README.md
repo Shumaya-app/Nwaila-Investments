@@ -205,6 +205,94 @@ Or paste the domain into dnschecker.org.
 - GA4 does set analytics cookies. If you'd rather stay cookie-free, Plausible or Fathom are
   drop-in replacements for that one script block.
 
+## Analytics
+
+GA4 property **451838042**, measurement ID **G-H0ZGCDV538**. Event names are plain, no prefix.
+
+### What gets sent
+
+| Event | When | Useful parameters |
+|---|---|---|
+| `view_home` … `view_about` | Each screen | `journey` |
+| `health_check_start` | Begin pressed | `journey` |
+| `question_answered` | Each of the 18, once each | `question`, `pillar`, `journey` |
+| `health_check_complete` | Last question | six `score_*`, `overall_score`, `score_band`, `weakest`, `answers_code`, `report_link`, `journey` |
+| `health_check_abandoned` | Two minutes idle mid-check | `answered`, `stopped_at`, `stopped_pillar`, `answers_code`, `report_link` |
+| `report_open` | Full report opened | `overall_score`, `score_band` |
+| `report_pdf` | PDF downloaded | `overall_score`, `journey` |
+| `discovery_booked` | Booking button | `overall_score`, `score_band`, `from_health_check`, `journey` |
+| `email_click` | Any mailto link | `where` |
+| `retake_check` | Retake pressed | - |
+| `tour_step` | Each platform tour step seen | `step`, `label`, `source` (click or autoplay) |
+| `scroll_depth` | 25 / 50 / 75 / 100% on SME, enterprise, platform | `page`, `percent` |
+| `consent_choice` | Banner answered | `choice` |
+
+`journey` records which fork they came through - `sme`, `enterprise` or `direct` - and rides on
+every later event, so a booking can be attributed to the path that produced it.
+
+`report_link` is a clickable link to that person's own report, appendix included, pinned to
+https://nwaila.co.za/ so it works from any GA4 report. About 49 characters, well inside GA4's
+100-character parameter limit.
+
+### Set up in GA4 (once)
+
+**Admin - Events - Mark as key event** for these five:
+
+- `discovery_booked`
+- `health_check_complete`
+- `report_pdf`
+- `email_click`
+- `report_open`
+
+**Admin - Custom definitions - Create custom dimension** for each parameter you want to filter or
+group by. Without this GA4 collects them but won't show them in reports:
+
+| Dimension name | Scope | Event parameter |
+|---|---|---|
+| Journey | Event | `journey` |
+| Score band | Event | `score_band` |
+| Weakest pillar | Event | `weakest` |
+| Report link | Event | `report_link` |
+| Answers code | Event | `answers_code` |
+| Question number | Event | `question` |
+| Pillar | Event | `pillar` |
+| Stopped at | Event | `stopped_at` |
+| Tour step | Event | `label` |
+| Scroll page | Event | `page` |
+
+Data takes up to 24 hours to appear in standard reports. **Reports - Realtime** shows events
+immediately, which is the fastest way to confirm it works.
+
+### Reading a client's answers
+
+`health_check_complete` carries `report_link`. Click it and you get that person's full report
+with the appendix - every question and the answer they chose.
+
+Or paste the code into **nwaila.co.za/decode.html**, which accepts a bare 18-character code or a
+whole URL. That page is `noindex` and disallowed in robots.txt, so it stays out of search.
+
+### Consent
+
+Measurement starts on the first page view. Accepting the banner allows the normal analytics
+cookie; declining switches to cookieless measurement - the visit is still counted, nothing is
+stored on the device. Advertising signals are denied in both cases.
+
+### Excluding your own visits
+
+Two ways, same switch:
+
+- Visit **nwaila.co.za/?nwstaff=1** on any device. Nothing is sent from that browser again.
+  **?nwstaff=0** turns it back on.
+- Or use the toggle at the bottom of **decode.html**, which shows Counted or Excluded.
+
+The setting lives in that browser's local storage, so do it once per device you test from.
+
+### Turning measurement off entirely
+
+In `index.html`, find `var GA4_ID = "G-H0ZGCDV538";` near the top and set it to `""`. Nothing
+loads, nothing is sent, and the site behaves normally. The banner still appears; remove
+`askConsent` if you want it gone too.
+
 ## PDF download
 
 The report's **Download PDF** button writes a real file - no browser print sheet. It loads

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Decode a report &middot; Nwaila Investments</title>
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #080B09; }
+  body {
+    min-height: 100vh; color: #F0F0EB;
+    font-family: 'Outfit', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    display: flex; align-items: center; justify-content: center;
+    padding: clamp(20px, 5vw, 48px);
+  }
+  a { color: #8CC63F; text-decoration: none; }
+  a:hover { color: #B4E06B; }
+  .wrap { width: 100%; max-width: 560px; }
+  .eyebrow {
+    margin: 0 0 18px; font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px; letter-spacing: 0.18em; text-transform: uppercase; color: #8CC63F;
+  }
+  h1 {
+    margin: 0 0 12px; font-size: clamp(28px, 5vw, 40px); font-weight: 600;
+    letter-spacing: -0.035em; line-height: 1.06;
+  }
+  .lede { margin: 0 0 28px; font-size: 16.5px; line-height: 1.55; color: rgba(240,240,235,0.6); }
+  label {
+    display: block; margin-bottom: 8px; font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(240,240,235,0.62);
+  }
+  textarea {
+    width: 100%; min-height: 92px; resize: vertical;
+    background: #0F150F; color: #F0F0EB;
+    border: 1px solid rgba(240,240,235,0.12); border-radius: 14px;
+    padding: 15px 16px; font-family: 'JetBrains Mono', monospace; font-size: 13.5px; line-height: 1.5;
+  }
+  textarea:focus { outline: none; border-color: #7AB648; }
+  textarea::placeholder { color: rgba(240,240,235,0.28); }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 16px; }
+  button {
+    font-family: inherit; cursor: pointer; border-radius: 999px; transition: 0.15s;
+  }
+  .go {
+    background: #7AB648; border: none; padding: 13px 26px;
+    color: #080B09; font-size: 15px; font-weight: 600;
+  }
+  .go:hover { background: #93D653; }
+  .ghost {
+    background: none; border: 1px solid rgba(240,240,235,0.18); padding: 12px 20px;
+    color: #F0F0EB; font-size: 14.5px;
+  }
+  .ghost:hover { border-color: #7AB648; color: #8CC63F; }
+  .note { margin: 14px 0 0; font-size: 14px; line-height: 1.5; color: rgba(240,240,235,0.5); min-height: 21px; }
+  .note.bad { color: #E0705C; }
+  .panel {
+    margin-top: 34px; padding-top: 22px; border-top: 1px solid rgba(240,240,235,0.09);
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px;
+  }
+  .panel p { margin: 0; font-size: 14.5px; line-height: 1.45; color: rgba(240,240,235,0.6); max-width: 30em; }
+  .state { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .on { color: #93D653; }
+  .off { color: rgba(240,240,235,0.45); }
+  .foot { margin: 30px 0 0; font-size: 13.5px; color: rgba(240,240,235,0.38); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Internal &middot; Nwaila Investments</p>
+  <h1>Decode a report</h1>
+  <p class="lede">Paste the answers code or the whole link from a Google Analytics report, or from a Calendly booking. It opens the full report with the appendix.</p>
+
+  <label for="code">Code or link</label>
+  <textarea id="code" placeholder="https://nwaila.co.za/?r=200222222220000022&amp;full=1&#10;or just 200222222220000022" spellcheck="false"></textarea>
+  <div class="row">
+    <button class="go" id="open">Open the report</button>
+    <button class="ghost" id="paste">Paste from clipboard</button>
+  </div>
+  <p class="note" id="note"></p>
+
+  <div class="panel">
+    <p>Exclude this device from analytics. Turn this on when you're testing so your own visits don't count.</p>
+    <button class="ghost" id="staff"><span class="state" id="staffState">checking</span></button>
+  </div>
+
+  <p class="foot">Answer codes are eighteen characters, one per question. An <span style="font-family:'JetBrains Mono',monospace">x</span> means unanswered, so half-finished checks decode too.</p>
+</div>
+
+<script>
+(function () {
+  var STAFF = "nw-staff";
+  var input = document.getElementById("code");
+  var note = document.getElementById("note");
+  var btn = document.getElementById("staff");
+  var state = document.getElementById("staffState");
+
+  function say(msg, bad) {
+    note.textContent = msg || "";
+    note.className = bad ? "note bad" : "note";
+  }
+
+  // Accepts a bare code, a full URL, or a URL with other parameters around it.
+  function extract(raw) {
+    var v = (raw || "").trim();
+    if (!v) return null;
+    var m = v.match(/[?&]r=([0-9x]+)/i);
+    if (m) return m[1];
+    var bare = v.replace(/[^0-9xX]/g, "");
+    return bare.length ? bare : null;
+  }
+
+  function open() {
+    var code = extract(input.value);
+    if (!code) { say("That doesn't look like a code or a report link.", true); return; }
+    if (code.length !== 18) {
+      say("Codes are eighteen characters; that one is " + code.length + ".", true);
+      return;
+    }
+    say("Opening...");
+    window.location.href = "index.html?r=" + code + "&full=1";
+  }
+
+  document.getElementById("open").addEventListener("click", open);
+  input.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) open();
+  });
+
+  document.getElementById("paste").addEventListener("click", function () {
+    if (!navigator.clipboard || !navigator.clipboard.readText) {
+      say("Your browser won't allow paste from here - use the field.", true);
+      return;
+    }
+    navigator.clipboard.readText().then(function (t) {
+      input.value = t;
+      say("");
+    }).catch(function () {
+      say("Couldn't read the clipboard - paste into the field instead.", true);
+    });
+  });
+
+  function read() {
+    try { return window.localStorage.getItem(STAFF) === "1"; } catch (e) { return false; }
+  }
+  function draw() {
+    var on = read();
+    state.textContent = on ? "Excluded" : "Counted";
+    state.className = "state " + (on ? "on" : "off");
+  }
+  btn.addEventListener("click", function () {
+    try { window.localStorage.setItem(STAFF, read() ? "0" : "1"); } catch (e) {}
+    draw();
+  });
+  draw();
+})();
+</script>
+</body>
+</html>

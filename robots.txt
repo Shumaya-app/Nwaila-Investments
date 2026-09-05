@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /decode.html
 
 Sitemap: https://nwaila.co.za/sitemap.xml
