@@ -18,6 +18,7 @@ Static site for Nwaila Investments. No build step, no dependencies, no server.
 | `favicon.png` | Browser tab icon. |
 | `apple-touch-icon.png` | Icon when saved to an iPhone home screen. |
 | `nwaila-wordmark.png` | Logo for press, decks, directory listings. Not used by the site. |
+| `README.md` | This file — your notes. The site doesn't use it; delete it if you'd rather. |
 
 Upload all of these to the **repository root**, not inside a folder.
 
@@ -47,24 +48,32 @@ Events already wired up:
 - `report_open` / `report_print` — someone viewed or saved their PDF report
 - `discovery_start` — someone clicked through to book a call, with their score attached
 
-### 2. The Tally form
+### 2. The discovery form
 
-Open `index.html`, search for `TALLY_FORM = ""`, paste your form link between the quotes:
+The form on the site posts straight to your inbox — no Tally, no redirect, visitors never leave
+the page. It needs one free key:
 
-```js
-const TALLY_FORM = "https://tally.so/r/xxxxx";
-```
+1. Go to **web3forms.com**, enter `info@nwaila.co.za`, and confirm the email they send you.
+2. Copy the access key.
+3. Open `index.html`, search for `YOUR-ACCESS-KEY`, and paste it in.
 
-Add these hidden fields in Tally, named exactly:
+Every submission then arrives at info@nwaila.co.za containing:
 
-`overall_score`, `band`, `source`, `report_url`
-`score_compliance`, `score_finance`, `score_tax`, `score_people`, `score_funding`, `score_growth`
-`q1` … `q18`
+- name, business, email, mobile
+- what they wrote about their constraint
+- overall readiness score and all six pillar scores
+- **all eighteen questions with the answer they chose**
+- a one-click link to their branded PDF report
 
-Turn on email notifications to **info@nwaila.co.za**. Every submission then arrives with the
-respondent's full health check, and `report_url` links straight to their branded report.
+Reply-to is set to the visitor's address, so hitting Reply goes to them.
 
-Leave `TALLY_FORM` empty and the built-in on-page form is used instead.
+Until you paste the key, the button opens the visitor's own email client with the whole thing
+pre-written — functional, but it depends on them pressing send, so do get the key.
+
+If you'd rather use Tally, search `TALLY_FORM = ""` in `index.html` and paste a form link between
+the quotes. The button then sends visitors to Tally with their results pre-filled instead, and you
+need hidden fields named `overall_score`, `band`, `source`, `report_url`, `score_compliance`,
+`score_finance`, `score_tax`, `score_people`, `score_funding`, `score_growth`, and `q1`…`q18`.
 
 ---
 
